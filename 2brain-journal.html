@@ -222,6 +222,137 @@
     text-align: center;
     padding: 40px 0;
   }
+
+  /* Calendar */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .cal-nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .cal-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .cal-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: 16px;
+  }
+
+  .cal-dow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 4px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cal-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.1s;
+    min-height: 40px;
+    gap: 3px;
+  }
+  .cal-day:hover { background: var(--surface2); border-color: var(--border); }
+  .cal-day.empty { cursor: default; pointer-events: none; }
+
+  .cal-day-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .cal-day.has-thoughts { background: var(--surface); border-color: var(--border); }
+  .cal-day.has-thoughts .cal-day-num { color: var(--text); }
+  .cal-day.today .cal-day-num { color: var(--accent); font-weight: 500; }
+  .cal-day.selected { background: var(--accent-dim); border-color: var(--accent); }
+  .cal-day.selected .cal-day-num { color: var(--accent); }
+
+  .cal-dots {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    min-height: 6px;
+  }
+
+  .cal-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+  .cal-dot.ref { background: var(--type-task); }
+
+  /* Day panel */
+  .cal-panel {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .cal-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cal-panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+
+  .cal-panel-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .cal-panel-empty {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 24px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -235,6 +366,11 @@
 <div class="controls">
   <input class="search-box" id="search" placeholder="search thoughts..." oninput="applyFilters()">
   <div class="filter-row">
+    <span class="filter-label">view</span>
+    <span class="chip active" data-view="journal" onclick="setView('journal')">journal</span>
+    <span class="chip" data-view="calendar" onclick="setView('calendar')">calendar</span>
+  </div>
+  <div class="filter-row" id="type-filters">
     <span class="filter-label">type</span>
     <span class="chip active" data-type="all" onclick="setType('all')">all</span>
     <span class="chip" data-type="observation" onclick="setType('observation')">observation</span>
@@ -255,7 +391,6 @@
 
   const APP_ORDER = ['Delivery', 'SBS', 'CEF', 'Budget', '2Brain', 'General'];
 
-  // First matching rule wins — topics checked before content keywords
   const APP_RULES = [
     {
       app: 'Delivery',
@@ -287,7 +422,16 @@
   let allThoughts = [];
   let filtered = [];
   let activeType = 'all';
-  let openSections = new Set(APP_ORDER); // all open by default
+  let viewMode = 'journal';
+  let openSections = new Set(APP_ORDER);
+
+  // Calendar state
+  const _now = new Date();
+  let calYear = _now.getFullYear();
+  let calMonth = _now.getMonth();
+  let selectedDate = null;
+  // dateIndex: 'YYYY-MM-DD' -> { created: [ids], ref: [ids] }
+  let dateIndex = {};
 
   async function fetchThoughts() {
     const res = await fetch(
@@ -296,6 +440,23 @@
     );
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
+  }
+
+  function buildDateIndex(thoughts) {
+    dateIndex = {};
+    for (const t of thoughts) {
+      const created = t.created_at.substring(0, 10);
+      if (!dateIndex[created]) dateIndex[created] = { created: [], ref: [] };
+      dateIndex[created].created.push(t.id);
+
+      // Scan content for referenced ISO dates
+      const matches = t.content.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
+      for (const d of matches) {
+        if (d === created) continue;
+        if (!dateIndex[d]) dateIndex[d] = { created: [], ref: [] };
+        if (!dateIndex[d].ref.includes(t.id)) dateIndex[d].ref.push(t.id);
+      }
+    }
   }
 
   function detectApp(t) {
@@ -314,6 +475,14 @@
     APP_ORDER.forEach(a => groups[a] = []);
     for (const t of thoughts) groups[detectApp(t)].push(t);
     return groups;
+  }
+
+  function setView(mode) {
+    viewMode = mode;
+    document.querySelectorAll('.chip[data-view]').forEach(c => {
+      c.classList.toggle('active', c.dataset.view === mode);
+    });
+    renderFeed();
   }
 
   function setType(type) {
@@ -343,7 +512,6 @@
     renderFeed();
   }
 
-  // Section toggle: DOM manipulation so scroll position doesn't jump
   function toggleSection(app) {
     const section = document.querySelector(`.section[data-section="${app}"]`);
     if (!section) return;
@@ -360,13 +528,11 @@
     }
   }
 
-  // Entry toggle: DOM manipulation for same reason
   function toggleEntry(id) {
     const item = document.querySelector(`.entry-item[data-id="${id}"]`);
     if (!item) return;
     const detail = item.querySelector('.entry-detail');
     const row = item.querySelector('.entry-row');
-    // detail starts hidden via CSS (display:none), inline style is '' initially
     const isOpen = detail.style.display === 'block';
     detail.style.display = isOpen ? 'none' : 'block';
     row.classList.toggle('open', !isOpen);
@@ -384,8 +550,8 @@
     return raw.split('\n').map(line => {
       const e = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       if (/^### /.test(line)) return `<div class="md-h3">${e.replace(/^### /, '')}</div>`;
-      if (/^## /.test(line)) return `<div class="md-h2">${e.replace(/^## /, '')}</div>`;
-      if (/^- /.test(line))  return `<div class="md-li">• ${e.replace(/^- /, '')}</div>`;
+      if (/^## /.test(line))  return `<div class="md-h2">${e.replace(/^## /, '')}</div>`;
+      if (/^- /.test(line))   return `<div class="md-li">• ${e.replace(/^- /, '')}</div>`;
       return `<div class="md-p">${e.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
     }).join('');
   }
@@ -418,11 +584,104 @@
     </div>`;
   }
 
-  function renderFeed() {
-    const feed = document.getElementById('feed');
-    const stats = document.getElementById('stats');
+  // ── Calendar ──────────────────────────────────────────────────────────────
 
+  function shiftMonth(delta) {
+    calMonth += delta;
+    if (calMonth < 0)  { calMonth = 11; calYear--; }
+    if (calMonth > 11) { calMonth = 0;  calYear++; }
+    renderFeed();
+  }
+
+  function selectDate(dateStr) {
+    selectedDate = selectedDate === dateStr ? null : dateStr;
+    renderFeed();
+  }
+
+  function renderCalendar() {
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    const todayStr   = new Date().toISOString().substring(0, 10);
+    const firstDow   = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    const dowCells = DAYS.map(d => `<div class="cal-dow">${d}</div>`).join('');
+    const empties  = Array(firstDow).fill('<div class="cal-day empty"></div>').join('');
+
+    const dayCells = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const entry = dateIndex[ds];
+      const hasCreated = entry?.created.length > 0;
+      const hasRef     = entry?.ref.length > 0;
+      const hasAny     = hasCreated || hasRef;
+
+      const cls = [
+        'cal-day',
+        hasAny     ? 'has-thoughts' : '',
+        ds === todayStr   ? 'today'    : '',
+        ds === selectedDate ? 'selected' : '',
+      ].filter(Boolean).join(' ');
+
+      const dots = hasAny ? `<div class="cal-dots">
+        ${hasCreated ? '<div class="cal-dot"></div>'     : ''}
+        ${hasRef     ? '<div class="cal-dot ref"></div>' : ''}
+      </div>` : '<div class="cal-dots"></div>';
+
+      dayCells.push(`<div class="${cls}" onclick="selectDate('${ds}')">
+        <span class="cal-day-num">${d}</span>
+        ${dots}
+      </div>`);
+    }
+
+    // Day panel
+    let panel = '';
+    if (selectedDate) {
+      const entry = dateIndex[selectedDate] || { created: [], ref: [] };
+      const allIds = new Set([...entry.created, ...entry.ref]);
+      const dayThoughts = allThoughts.filter(t => allIds.has(t.id) &&
+        (activeType === 'all' || (t.metadata?.type || 'observation') === activeType));
+
+      const label = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US',
+        { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+      const entries = dayThoughts.length
+        ? dayThoughts.map(t => renderEntry(t)).join('')
+        : '<div class="cal-panel-empty">no thoughts for this date</div>';
+
+      panel = `<div class="cal-panel">
+        <div class="cal-panel-header">
+          <span class="cal-panel-title">${label}</span>
+          ${dayThoughts.length ? `<span class="cal-panel-count">${dayThoughts.length} thought${dayThoughts.length !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+        ${entries}
+      </div>`;
+    }
+
+    document.getElementById('feed').innerHTML = `
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="shiftMonth(-1)">‹</button>
+        <span class="cal-title">${MONTHS[calMonth]} ${calYear}</span>
+        <button class="cal-nav-btn" onclick="shiftMonth(1)">›</button>
+      </div>
+      <div class="cal-grid">${dowCells}${empties}${dayCells.join('')}</div>
+      ${panel}
+    `;
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  function renderFeed() {
+    const stats = document.getElementById('stats');
     stats.textContent = `${filtered.length} thought${filtered.length !== 1 ? 's' : ''} · ${allThoughts.length} total`;
+
+    if (viewMode === 'calendar') {
+      renderCalendar();
+      return;
+    }
+
+    const feed = document.getElementById('feed');
 
     if (filtered.length === 0) {
       feed.innerHTML = '<div class="empty">no thoughts found</div>';
@@ -454,6 +713,7 @@
   fetchThoughts()
     .then(data => {
       allThoughts = data;
+      buildDateIndex(data);
       applyFilters();
     })
     .catch(err => {
