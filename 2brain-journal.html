@@ -627,7 +627,6 @@
     const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
     const todayStr    = new Date().toISOString().substring(0, 10);
-    const isCurrentMonth = calYear === _now.getFullYear() && calMonth === _now.getMonth();
     const firstDow   = new Date(calYear, calMonth, 1).getDay();
     const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
 
@@ -689,7 +688,7 @@
         <button class="cal-nav-btn" onclick="shiftMonth(-1)">‹</button>
         <span class="cal-title">${MONTHS[calMonth]} ${calYear}</span>
         <button class="cal-nav-btn" onclick="shiftMonth(1)">›</button>
-        ${!isCurrentMonth ? '<button class="cal-today-btn" onclick="goToToday()">today</button>' : ''}
+        <button class="cal-today-btn" onclick="goToToday()">today</button>
       </div>
       <div class="cal-grid">${dowCells}${empties}${dayCells.join('')}</div>
       ${panel}
