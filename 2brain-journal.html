@@ -249,6 +249,22 @@
   }
   .cal-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+  .cal-today-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 0 8px;
+    height: 28px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .cal-today-btn:hover { border-color: var(--accent); color: var(--accent); }
+
   .cal-title {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
@@ -586,6 +602,14 @@
 
   // ── Calendar ──────────────────────────────────────────────────────────────
 
+  function goToToday() {
+    const now = new Date();
+    calYear  = now.getFullYear();
+    calMonth = now.getMonth();
+    selectedDate = now.toISOString().substring(0, 10);
+    renderFeed();
+  }
+
   function shiftMonth(delta) {
     calMonth += delta;
     if (calMonth < 0)  { calMonth = 11; calYear--; }
@@ -602,7 +626,8 @@
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-    const todayStr   = new Date().toISOString().substring(0, 10);
+    const todayStr    = new Date().toISOString().substring(0, 10);
+    const isCurrentMonth = calYear === _now.getFullYear() && calMonth === _now.getMonth();
     const firstDow   = new Date(calYear, calMonth, 1).getDay();
     const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
 
@@ -619,8 +644,8 @@
 
       const cls = [
         'cal-day',
-        hasAny     ? 'has-thoughts' : '',
-        ds === todayStr   ? 'today'    : '',
+        hasAny              ? 'has-thoughts' : '',
+        ds === todayStr     ? 'today'         : '',
         ds === selectedDate ? 'selected' : '',
       ].filter(Boolean).join(' ');
 
@@ -664,6 +689,7 @@
         <button class="cal-nav-btn" onclick="shiftMonth(-1)">‹</button>
         <span class="cal-title">${MONTHS[calMonth]} ${calYear}</span>
         <button class="cal-nav-btn" onclick="shiftMonth(1)">›</button>
+        ${!isCurrentMonth ? '<button class="cal-today-btn" onclick="goToToday()">today</button>' : ''}
       </div>
       <div class="cal-grid">${dowCells}${empties}${dayCells.join('')}</div>
       ${panel}
