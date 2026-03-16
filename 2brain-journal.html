@@ -425,7 +425,7 @@
     <span class="chip" data-type="idea" onclick="setType('idea')">idea</span>
     <span class="chip" data-type="meeting" onclick="setType('meeting')">meeting</span>
     <span class="chip" data-type="observation" onclick="setType('observation')">observation</span>
-    <span class="chip" data-type="person_note" onclick="setType('person_note')">person note</span>
+    <span class="chip" data-type="person_note" onclick="setType('person_note')">person</span>
     <span class="chip" data-type="reference" onclick="setType('reference')">reference</span>
     <span class="chip" data-type="summary" onclick="setType('summary')">summary</span>
     <span class="chip" data-type="task" onclick="setType('task')">task</span>
@@ -628,7 +628,7 @@
     return `<div class="entry-item" data-id="${t.id}">
       <div class="entry-row" onclick="toggleEntry('${t.id}')">
         <span class="entry-date">${dateStr}</span>
-        <span class="type-badge badge-${type}">${type.replace('_', ' ')}</span>
+        <span class="type-badge badge-${type}">${type === 'person_note' ? 'person' : type}</span>
         <span class="entry-preview">${esc(previewText(t.content))}</span>
       </div>
       <div class="entry-detail">
