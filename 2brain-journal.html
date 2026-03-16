@@ -311,8 +311,12 @@
     font-size: 11px;
     color: var(--text-dim);
   }
-  .cal-day.has-thoughts { background: var(--surface); border-color: var(--border); }
-  .cal-day.has-thoughts .cal-day-num { color: var(--text); }
+  .cal-day.heat-1 { background: rgba(0,200,150,0.06); border-color: rgba(0,200,150,0.20); }
+  .cal-day.heat-2 { background: rgba(0,200,150,0.12); border-color: rgba(0,200,150,0.35); }
+  .cal-day.heat-3 { background: rgba(0,200,150,0.20); border-color: rgba(0,200,150,0.50); }
+  .cal-day.heat-4 { background: rgba(0,200,150,0.30); border-color: rgba(0,200,150,0.70); }
+  .cal-day[class*="heat-"] .cal-day-num { color: var(--text); }
+  .cal-day.heat-4 .cal-day-num { color: var(--accent); }
   .cal-day.today .cal-day-num { color: var(--accent); font-weight: 500; }
   .cal-day.selected { background: var(--accent-dim); border-color: var(--accent); }
   .cal-day.selected .cal-day-num { color: var(--accent); }
@@ -636,15 +640,22 @@
     const dayCells = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const entry = dateIndex[ds];
-      const hasCreated = entry?.created.length > 0;
-      const hasRef     = entry?.ref.length > 0;
-      const hasAny     = hasCreated || hasRef;
+      const entry        = dateIndex[ds];
+      const createdCount = entry?.created.length || 0;
+      const hasCreated   = createdCount > 0;
+      const hasRef       = entry?.ref.length > 0;
+      const hasAny       = hasCreated || hasRef;
+
+      const heatClass = createdCount >= 6 ? 'heat-4'
+                      : createdCount >= 4 ? 'heat-3'
+                      : createdCount >= 2 ? 'heat-2'
+                      : createdCount >= 1 ? 'heat-1'
+                      : '';
 
       const cls = [
         'cal-day',
-        hasAny              ? 'has-thoughts' : '',
-        ds === todayStr     ? 'today'         : '',
+        heatClass,
+        ds === todayStr     ? 'today'    : '',
         ds === selectedDate ? 'selected' : '',
       ].filter(Boolean).join(' ');
 
