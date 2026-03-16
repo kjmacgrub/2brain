@@ -640,8 +640,7 @@
     if (calEventsFetchedMonth === yearMonth) return;
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/ical-proxy?month=${yearMonth}`,
-        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+        `${SUPABASE_URL}/functions/v1/ical-proxy?month=${yearMonth}`
       );
       const data = await res.json();
       calEventIndex = {};
