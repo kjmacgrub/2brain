@@ -335,7 +335,32 @@
     background: var(--accent);
     opacity: 0.7;
   }
-  .cal-dot.ref { background: var(--type-task); }
+  .cal-dot.ref   { background: var(--type-task); }
+  .cal-dot.event { background: #888; }
+
+  .cal-events { border-bottom: 1px solid var(--border); }
+
+  .cal-event {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 5px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cal-event:last-child { border-bottom: none; }
+
+  .cal-event-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    width: 44px;
+  }
+
+  .cal-event-title {
+    font-size: 12px;
+    color: var(--text-mid);
+  }
 
   /* Day panel */
   .cal-panel {
@@ -452,6 +477,9 @@
   let selectedDate = null;
   // dateIndex: 'YYYY-MM-DD' -> { created: [ids], ref: [ids] }
   let dateIndex = {};
+  // calEventIndex: 'YYYY-MM-DD' -> [{title, allDay, startTime}]
+  let calEventIndex = {};
+  let calEventsFetchedMonth = null;
 
   async function fetchThoughts() {
     const res = await fetch(
@@ -502,6 +530,7 @@
     document.querySelectorAll('.chip[data-view]').forEach(c => {
       c.classList.toggle('active', c.dataset.view === mode);
     });
+    if (mode === 'calendar') fetchCalEvents();
     renderFeed();
   }
 
@@ -606,6 +635,39 @@
 
   // ── Calendar ──────────────────────────────────────────────────────────────
 
+  async function fetchCalEvents() {
+    const yearMonth = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`;
+    if (calEventsFetchedMonth === yearMonth) return;
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/ical-proxy?month=${yearMonth}`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      );
+      const data = await res.json();
+      calEventIndex = {};
+      for (const ev of (data.events || [])) {
+        // For all-day events, Apple iCal DTEND is exclusive — subtract 1 day
+        let endDate = ev.endDate || ev.date;
+        if (ev.allDay && endDate > ev.date) {
+          const d = new Date(endDate + 'T12:00:00');
+          d.setDate(d.getDate() - 1);
+          endDate = d.toISOString().substring(0, 10);
+        }
+        const s = new Date(ev.date + 'T12:00:00');
+        const e = new Date(endDate + 'T12:00:00');
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+          const ds = d.toISOString().substring(0, 10);
+          if (!calEventIndex[ds]) calEventIndex[ds] = [];
+          calEventIndex[ds].push(ev);
+        }
+      }
+      calEventsFetchedMonth = yearMonth;
+      renderCalendar();
+    } catch (e) {
+      console.error('iCal fetch failed', e);
+    }
+  }
+
   function goToToday() {
     const now = new Date();
     calYear  = now.getFullYear();
@@ -618,6 +680,7 @@
     calMonth += delta;
     if (calMonth < 0)  { calMonth = 11; calYear--; }
     if (calMonth > 11) { calMonth = 0;  calYear++; }
+    fetchCalEvents();
     renderFeed();
   }
 
@@ -659,9 +722,11 @@
         ds === selectedDate ? 'selected' : '',
       ].filter(Boolean).join(' ');
 
-      const dots = hasAny ? `<div class="cal-dots">
-        ${hasCreated ? '<div class="cal-dot"></div>'     : ''}
-        ${hasRef     ? '<div class="cal-dot ref"></div>' : ''}
+      const hasEvents = (calEventIndex[ds]?.length || 0) > 0;
+      const dots = (hasAny || hasEvents) ? `<div class="cal-dots">
+        ${hasCreated ? '<div class="cal-dot"></div>'       : ''}
+        ${hasRef     ? '<div class="cal-dot ref"></div>'   : ''}
+        ${hasEvents  ? '<div class="cal-dot event"></div>' : ''}
       </div>` : '<div class="cal-dots"></div>';
 
       dayCells.push(`<div class="${cls}" onclick="selectDate('${ds}')">
@@ -680,6 +745,14 @@
       const label = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US',
         { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
+      const dayEvents = calEventIndex[selectedDate] || [];
+      const eventsHtml = dayEvents.length ? `<div class="cal-events">
+        ${dayEvents.map(ev => `<div class="cal-event">
+          <span class="cal-event-time">${ev.allDay ? 'all day' : (ev.startTime || '')}</span>
+          <span class="cal-event-title">${esc(ev.title)}</span>
+        </div>`).join('')}
+      </div>` : '';
+
       const entries = dayThoughts.length
         ? dayThoughts.map(t => renderEntry(t)).join('')
         : '<div class="cal-panel-empty">no thoughts for this date</div>';
@@ -689,6 +762,7 @@
           <span class="cal-panel-title">${label}</span>
           ${dayThoughts.length ? `<span class="cal-panel-count">${dayThoughts.length} thought${dayThoughts.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
+        ${eventsHtml}
         ${entries}
       </div>`;
     }
