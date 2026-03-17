@@ -856,12 +856,9 @@
         { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
       const dayEvents = calEventIndex[selectedDate] || [];
-      const eventsHtml = dayEvents.length ? `<div class="cal-events">
-        ${dayEvents.map(ev => `<div class="cal-event">
-          <span class="cal-event-time">${ev.allDay ? 'all day' : (ev.startTime || '')}</span>
-          <span class="cal-event-title">${esc(ev.title)}</span>
-        </div>`).join('')}
-      </div>` : '';
+      const eventsHtml = dayEvents.length
+        ? `<div class="section-body" style="border-top:none">${dayEvents.map(ev => renderCalEventTile(ev)).join('')}</div>`
+        : '';
 
       const entries = dayThoughts.length
         ? dayThoughts.map(t => renderEntry(t)).join('')
