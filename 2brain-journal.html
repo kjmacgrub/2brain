@@ -197,6 +197,7 @@
   .badge-person_note { background: rgba(236,72,153,0.12); color: var(--type-person_note); }
   .badge-meeting     { background: rgba(16,185,129,0.12); color: #10b981; }
   .badge-summary     { background: rgba(6,182,212,0.12);  color: var(--type-summary); }
+  .badge-event       { background: rgba(249,115,22,0.12); color: var(--today); }
 
   .entry-preview {
     font-size: 12px;
@@ -508,6 +509,7 @@
   // calEventIndex: 'YYYY-MM-DD' -> [{title, allDay, startTime}]
   let calEventIndex = {};
   let calEventsFetchedMonth = null;
+  let allCalEvents = [];
 
   async function fetchThoughts() {
     const res = await fetch(
@@ -699,6 +701,34 @@
     </div>`;
   }
 
+  function renderCalEventTile(ev) {
+    const d = new Date(ev.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = ev.allDay ? '' : (ev.startTime ? ` · ${ev.startTime}` : '');
+    return `<div class="entry-item">
+      <div class="entry-row" style="cursor:default">
+        <span class="entry-date">${dateStr}</span>
+        <span class="type-badge badge-event">event</span>
+        <span class="entry-preview">${esc(ev.title)}${timeStr}</span>
+      </div>
+    </div>`;
+  }
+
+  function renderCalSection(events) {
+    if (!events.length) return '';
+    const isOpen = openSections.has('Calendar');
+    return `<div class="section" data-section="Calendar">
+      <div class="section-header" onclick="toggleSection('Calendar')">
+        <span class="section-toggle">${isOpen ? '▾' : '▸'}</span>
+        <span class="section-name">Calendar</span>
+        <span class="section-count">${events.length}</span>
+      </div>
+      <div class="section-body"${isOpen ? '' : ' style="display:none"'}>
+        ${events.map(ev => renderCalEventTile(ev)).join('')}
+      </div>
+    </div>`;
+  }
+
   // ── Calendar ──────────────────────────────────────────────────────────────
 
   async function fetchCalEvents() {
@@ -730,6 +760,20 @@
       renderCalendar();
     } catch (e) {
       console.error('iCal fetch failed', e);
+    }
+  }
+
+  async function fetchAllCalEvents() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/ical-proxy`);
+      const data = await res.json();
+      const today = new Date().toISOString().substring(0, 10);
+      allCalEvents = (data.events || [])
+        .filter(ev => (ev.endDate || ev.date) >= today)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      renderFeed();
+    } catch (e) {
+      console.error('fetchAllCalEvents failed', e);
     }
   }
 
@@ -841,6 +885,7 @@
       </div>
       <div class="cal-grid">${dowCells}${empties}${dayCells.join('')}</div>
       ${panel}
+      <div class="sections" style="margin-top:16px">${renderCalSection(allCalEvents)}</div>
     `;
   }
 
@@ -848,15 +893,16 @@
 
   function renderChronological() {
     const feed = document.getElementById('feed');
+    const calSection = renderCalSection(allCalEvents);
     if (filtered.length === 0) {
-      feed.innerHTML = '<div class="empty">no thoughts found</div>';
+      feed.innerHTML = `<div class="sections">${calSection}</div>`;
       return;
     }
     feed.innerHTML = `<div class="sections"><div class="section">
       <div class="section-body" style="border-top:none">
         ${filtered.map(t => renderEntry(t, detectApp(t))).join('')}
       </div>
-    </div></div>`;
+    </div>${calSection}</div>`;
   }
 
   function renderFeed() {
@@ -899,7 +945,7 @@
         </div>
       `);
     }
-    feed.innerHTML = `<div class="sections">${parts.join('')}</div>`;
+    feed.innerHTML = `<div class="sections">${parts.join('')}${renderCalSection(allCalEvents)}</div>`;
   }
 
   const KEY_MAP = {
@@ -921,6 +967,8 @@
   });
 
   updateCollapseAllBtn();
+
+  fetchAllCalEvents();
 
   fetchThoughts()
     .then(data => {
