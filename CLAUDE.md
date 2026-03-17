@@ -1,14 +1,14 @@
 # 2Brain Journal Tools
 
 ## How files are served
-- All files are opened **directly in the browser** as local files: `file:///Users/km/python3/source/tools/`
+- All files are opened **directly in the browser** as local files: `file:///Users/km/python3/source/2brain_tools/`
 - No dev server — changes to HTML/JS/CSS are visible after a hard refresh (`Cmd+Shift+R`)
 
 ## Git
 - This directory is a **nested git repo** inside `/Users/km/python3/source/`
-- Always commit and push using `git -C /Users/km/python3/source/tools` (or `cd` into it)
+- Always commit and push using `git -C /Users/km/python3/source/2brain_tools` (or `cd` into it)
 - Remote: `https://github.com/kjmacgrub/2brain.git` — branch: `master`
-- Do NOT `git add tools/` from the outer `/source` repo
+- Do NOT `git add 2brain_tools/` from the outer `/source` repo
 
 ## Files
 - `2brain-journal.html` — main journal viewer (views: journal, chrono, calendar)
