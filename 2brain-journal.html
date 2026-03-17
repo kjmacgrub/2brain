@@ -54,11 +54,13 @@
 
   .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 
+  .search-wrap { position: relative; }
+
   .search-box {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 8px 12px;
+    padding: 8px 32px 8px 12px;
     color: var(--text);
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 13px;
@@ -68,6 +70,22 @@
   }
   .search-box:focus { border-color: var(--accent); }
   .search-box::placeholder { color: var(--text-dim); }
+
+  .search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+    display: none;
+  }
+  .search-clear:hover { color: var(--text); }
 
   .filter-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
@@ -413,7 +431,10 @@
 <div class="divider"></div>
 
 <div class="controls">
-  <input class="search-box" id="search" placeholder="search thoughts..." oninput="applyFilters()">
+  <div class="search-wrap">
+    <input class="search-box" id="search" placeholder="search thoughts..." oninput="onSearchInput()">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()" tabindex="-1">✕</button>
+  </div>
   <div class="filter-row">
     <span class="filter-label">view</span>
     <span class="chip active" data-view="journal" onclick="setView('journal')">journal</span>
@@ -564,6 +585,20 @@
     document.querySelectorAll('.chip[data-type]').forEach(c => {
       c.classList.toggle('active', c.dataset.type === type);
     });
+    applyFilters();
+  }
+
+  function onSearchInput() {
+    const clear = document.getElementById('search-clear');
+    if (clear) clear.style.display = document.getElementById('search').value ? '' : 'none';
+    applyFilters();
+  }
+
+  function clearSearch() {
+    const input = document.getElementById('search');
+    input.value = '';
+    document.getElementById('search-clear').style.display = 'none';
+    input.focus();
     applyFilters();
   }
 
