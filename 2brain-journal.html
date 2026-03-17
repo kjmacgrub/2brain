@@ -767,9 +767,10 @@
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/ical-proxy`);
       const data = await res.json();
-      const today = new Date().toISOString().substring(0, 10);
+      const n = new Date();
+      const today = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
       allCalEvents = (data.events || [])
-        .filter(ev => (ev.endDate || ev.date) >= today)
+        .filter(ev => ev.date >= today)
         .sort((a, b) => a.date.localeCompare(b.date));
       renderFeed();
     } catch (e) {
@@ -883,9 +884,9 @@
         <button class="cal-nav-btn" onclick="shiftMonth(1)">›</button>
         <button class="cal-today-btn" onclick="goToToday()">today</button>
       </div>
+      <div class="sections" style="margin-bottom:16px">${renderCalSection(allCalEvents)}</div>
       <div class="cal-grid">${dowCells}${empties}${dayCells.join('')}</div>
       ${panel}
-      <div class="sections" style="margin-top:16px">${renderCalSection(allCalEvents)}</div>
     `;
   }
 
@@ -898,11 +899,11 @@
       feed.innerHTML = `<div class="sections">${calSection}</div>`;
       return;
     }
-    feed.innerHTML = `<div class="sections"><div class="section">
+    feed.innerHTML = `<div class="sections">${calSection}<div class="section">
       <div class="section-body" style="border-top:none">
         ${filtered.map(t => renderEntry(t, detectApp(t))).join('')}
       </div>
-    </div>${calSection}</div>`;
+    </div></div>`;
   }
 
   function renderFeed() {
@@ -945,7 +946,7 @@
         </div>
       `);
     }
-    feed.innerHTML = `<div class="sections">${parts.join('')}${renderCalSection(allCalEvents)}</div>`;
+    feed.innerHTML = `<div class="sections">${renderCalSection(allCalEvents)}${parts.join('')}</div>`;
   }
 
   const KEY_MAP = {
