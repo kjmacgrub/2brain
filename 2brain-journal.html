@@ -211,6 +211,7 @@
   .badge-meeting     { background: rgba(16,185,129,0.12); color: #10b981; }
   .badge-summary     { background: rgba(6,182,212,0.12);  color: var(--type-summary); }
   .badge-event       { background: rgba(249,115,22,0.12); color: var(--today); }
+  .hk { color: var(--today); }
 
   .entry-preview {
     font-size: 12px;
@@ -450,11 +451,11 @@
     <button class="search-clear" id="search-clear" onclick="clearSearch()" tabindex="-1">✕</button>
   </div>
   <div class="filter-row">
-    <span class="filter-label">view</span>
+    <span class="filter-label"><span class="hk">v</span>iew</span>
     <span class="chip active" id="journal-chrono-btn" onclick="toggleJournalChrono()">project/chrono</span>
-    <span class="chip" data-view="calendar" onclick="setView('calendar')">calendar</span>
+    <span class="chip" data-view="calendar" onclick="setView('calendar')"><span class="hk">c</span>alendar</span>
     <span id="collapse-all-btn" class="chip" onclick="toggleCollapseAll()" style="margin-left:8px">collapse all</span>
-    <span id="theme-btn" class="chip" onclick="toggleTheme()" style="margin-left:auto">light</span>
+    <span id="theme-btn" class="chip" onclick="toggleTheme()" style="margin-left:auto"><span class="hk">l</span>ight</span>
   </div>
   <div class="filter-row" id="type-filters">
     <span class="filter-label">type</span>
@@ -572,7 +573,9 @@
     const btn = document.getElementById('collapse-all-btn');
     if (!btn) return;
     btn.style.display = viewMode === 'journal' ? '' : 'none';
-    btn.textContent = openSections.size === 0 ? 'expand all' : 'collapse all';
+    btn.innerHTML = openSections.size === 0
+      ? 'e<span class="hk">x</span>pand all'
+      : '<span class="hk">x</span> collapse all';
   }
 
   function toggleCollapseAll() {
@@ -980,14 +983,14 @@
 
   function toggleTheme() {
     const isLight = document.documentElement.classList.toggle('light');
-    document.getElementById('theme-btn').textContent = isLight ? 'dark' : 'light';
+    document.getElementById('theme-btn').classList.toggle('active', isLight);
     localStorage.setItem('2brain-theme', isLight ? 'light' : 'dark');
   }
 
   // Apply saved theme on load
   if (localStorage.getItem('2brain-theme') === 'light') {
     document.documentElement.classList.add('light');
-    document.getElementById('theme-btn').textContent = 'dark';
+    document.getElementById('theme-btn').classList.add('active');
   }
 
   function navigateDate(deltaDays) {
