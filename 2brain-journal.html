@@ -291,6 +291,7 @@
   .focus-pill.fp-topics.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
   .focus-entries { border-top: 1px solid var(--border); }
+  .focus-pill-entries { flex: 0 0 100%; border-top: 1px solid var(--border); margin-top: 4px; }
 
   /* Tasks chrono list */
   .focus-task-list { border-top: 1px solid var(--border); }
@@ -1069,15 +1070,16 @@
     }
 
     // Default: pill cloud
-    const pills = [...items.entries()].map(([key, thoughts]) => {
+    let pillsHtml = '';
+    for (const [key, thoughts] of items.entries()) {
       const isActive = selected === key;
       const label = group === 'tasks' ? `→ ${key}` : key;
       const encoded = btoa(encodeURIComponent(key));
-      return `<span class="focus-pill ${cssClass}${isActive ? ' active' : ''}" onclick="selectFocusItem('${group}','${encoded}')">${esc(label)}<span class="focus-pill-count">${thoughts.length}</span></span>`;
-    }).join('');
-    const entriesHtml = selected && items.has(selected)
-      ? `<div class="focus-entries">${items.get(selected).map(t => renderEntry(t, detectApp(t))).join('')}</div>`
-      : '';
+      pillsHtml += `<span class="focus-pill ${cssClass}${isActive ? ' active' : ''}" onclick="selectFocusItem('${group}','${encoded}')">${esc(label)}<span class="focus-pill-count">${thoughts.length}</span></span>`;
+      if (isActive) {
+        pillsHtml += `<div class="focus-pill-entries">${thoughts.map(t => renderEntry(t, detectApp(t))).join('')}</div>`;
+      }
+    }
     const sortChip = group === 'tasks'
       ? `<span class="focus-sort-chip" onclick="toggleTasksSort()">chrono</span>`
       : '';
@@ -1087,8 +1089,7 @@
         <span class="focus-group-count">${items.size} unique</span>
         ${sortChip}
       </div>
-      <div class="focus-pills">${pills}</div>
-      ${entriesHtml}
+      <div class="focus-pills">${pillsHtml}</div>
     </div>`;
   }
 
