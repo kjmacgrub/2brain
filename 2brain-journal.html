@@ -251,6 +251,47 @@
   .meta-pill.person { border-color: rgba(236,72,153,0.3); color: #ec4899; background: rgba(236,72,153,0.05); }
   .meta-pill.action { border-color: rgba(245,158,11,0.3); color: var(--type-task); background: rgba(245,158,11,0.05); }
 
+  /* Focus view */
+  .focus-view { display: flex; flex-direction: column; gap: 10px; }
+
+  .focus-group { border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+
+  .focus-group-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; background: var(--surface2);
+  }
+  .focus-group-name {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500;
+    color: var(--accent); letter-spacing: 1px; text-transform: uppercase;
+  }
+  .focus-group-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); margin-left: auto; }
+
+  .focus-pills {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 12px 14px; background: var(--surface); border-top: 1px solid var(--border);
+  }
+
+  .focus-pill {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    padding: 3px 8px; border-radius: 3px; cursor: pointer; user-select: none;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .focus-pill-count { font-size: 9px; opacity: 0.6; }
+
+  .focus-pill.fp-people { border: 1px solid rgba(236,72,153,0.3); color: #ec4899; background: rgba(236,72,153,0.05); }
+  .focus-pill.fp-people:hover { background: rgba(236,72,153,0.12); }
+  .focus-pill.fp-people.active { background: rgba(236,72,153,0.15); border-color: #ec4899; }
+
+  .focus-pill.fp-tasks { border: 1px solid rgba(245,158,11,0.3); color: var(--type-task); background: rgba(245,158,11,0.05); }
+  .focus-pill.fp-tasks:hover { background: rgba(245,158,11,0.12); }
+  .focus-pill.fp-tasks.active { background: rgba(245,158,11,0.15); border-color: var(--type-task); }
+
+  .focus-pill.fp-topics { border: 1px solid var(--border); color: var(--text-mid); background: var(--surface); }
+  .focus-pill.fp-topics:hover { border-color: var(--text-mid); color: var(--text); }
+  .focus-pill.fp-topics.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  .focus-entries { border-top: 1px solid var(--border); }
+
   .empty, .loading {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
@@ -453,6 +494,7 @@
   <div class="filter-row">
     <span class="filter-label"><span class="hk">v</span>iew</span>
     <span class="chip active" id="journal-chrono-btn" onclick="toggleJournalChrono()">project/chrono</span>
+    <span class="chip" data-view="focus" onclick="setView('focus')"><span class="hk">f</span>ocus</span>
     <span class="chip" data-view="calendar" onclick="setView('calendar')"><span class="hk">c</span>alendar</span>
     <span id="collapse-all-btn" class="chip" onclick="toggleCollapseAll()" style="margin-left:8px">collapse all</span>
     <span id="theme-btn" class="chip" onclick="toggleTheme()" style="margin-left:auto"><span class="hk">l</span>ight</span>
@@ -517,6 +559,7 @@
   let activeType = 'all';
   let viewMode = 'journal';
   let openSections = new Set();
+  let focusSelected = { people: null, tasks: null, topics: null };
 
   // Calendar state
   const _now = new Date();
@@ -600,6 +643,11 @@
       : '<span class="hk">x</span> collapse all';
   }
 
+  function updateFocusChip() {
+    const chip = document.querySelector('.chip[data-view="focus"]');
+    if (chip) chip.classList.toggle('active', viewMode === 'focus');
+  }
+
   function toggleCollapseAll() {
     if (openSections.size === 0) {
       openSections = new Set(getAppOrder(groupByApp(filtered)));
@@ -616,10 +664,13 @@
 
   function setView(mode) {
     viewMode = mode;
+    if (mode === 'focus') focusSelected = { people: null, tasks: null, topics: null };
     document.getElementById('journal-chrono-btn').classList.toggle('active', mode === 'journal' || mode === 'chrono');
+    document.querySelector('.chip[data-view="focus"]').classList.toggle('active', mode === 'focus');
     document.querySelector('.chip[data-view="calendar"]').classList.toggle('active', mode === 'calendar');
     if (mode === 'calendar') fetchCalEvents();
     updateCollapseAllBtn();
+    updateFocusChip();
     renderFeed();
   }
 
@@ -933,6 +984,60 @@
     `;
   }
 
+  // ── Focus view ────────────────────────────────────────────────────────────
+
+  function buildFocusIndex(thoughts) {
+    const people = new Map(), tasks = new Map(), topics = new Map();
+    for (const t of thoughts) {
+      const meta = t.metadata || {};
+      for (const p of (meta.people || [])) { if (!people.has(p)) people.set(p, []); people.get(p).push(t); }
+      for (const a of (meta.action_items || [])) { if (!tasks.has(a)) tasks.set(a, []); tasks.get(a).push(t); }
+      for (const tp of (meta.topics || [])) { if (!topics.has(tp)) topics.set(tp, []); topics.get(tp).push(t); }
+    }
+    const byFreq = m => new Map([...m.entries()].sort((a, b) => b[1].length - a[1].length));
+    return { people: byFreq(people), tasks: byFreq(tasks), topics: byFreq(topics) };
+  }
+
+  function selectFocusItem(group, encodedKey) {
+    const key = decodeURIComponent(atob(encodedKey));
+    focusSelected[group] = focusSelected[group] === key ? null : key;
+    renderFocus();
+  }
+
+  function renderFocusGroup(title, cssClass, items, group) {
+    if (items.size === 0) return '';
+    const selected = focusSelected[group];
+    const pills = [...items.entries()].map(([key, thoughts]) => {
+      const isActive = selected === key;
+      const label = group === 'tasks' ? `→ ${key}` : key;
+      const encoded = btoa(encodeURIComponent(key));
+      return `<span class="focus-pill ${cssClass}${isActive ? ' active' : ''}" onclick="selectFocusItem('${group}','${encoded}')">${esc(label)}<span class="focus-pill-count">${thoughts.length}</span></span>`;
+    }).join('');
+    const entriesHtml = selected && items.has(selected)
+      ? `<div class="focus-entries">${items.get(selected).map(t => renderEntry(t, detectApp(t))).join('')}</div>`
+      : '';
+    return `<div class="focus-group">
+      <div class="focus-group-header">
+        <span class="focus-group-name">${title}</span>
+        <span class="focus-group-count">${items.size} unique</span>
+      </div>
+      <div class="focus-pills">${pills}</div>
+      ${entriesHtml}
+    </div>`;
+  }
+
+  function renderFocus() {
+    const feed = document.getElementById('feed');
+    if (filtered.length === 0) { feed.innerHTML = '<div class="empty">no thoughts found</div>'; return; }
+    const idx = buildFocusIndex(filtered);
+    const parts = [
+      renderFocusGroup('People', 'fp-people', idx.people, 'people'),
+      renderFocusGroup('Tasks', 'fp-tasks', idx.tasks, 'tasks'),
+      renderFocusGroup('Focus', 'fp-topics', idx.topics, 'topics'),
+    ].filter(Boolean);
+    feed.innerHTML = `<div class="focus-view">${parts.join('')}</div>`;
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   function renderChronological() {
@@ -960,6 +1065,11 @@
 
     if (viewMode === 'chrono') {
       renderChronological();
+      return;
+    }
+
+    if (viewMode === 'focus') {
+      renderFocus();
       return;
     }
 
@@ -1041,6 +1151,7 @@
       return;
     }
     if (e.key === 'v') { toggleJournalChrono(); return; }
+    if (e.key === 'f') { setView('focus'); return; }
     if (e.key === 'c') { setView('calendar'); return; }
     if (e.key === 'x') { toggleCollapseAll(); return; }
     if (e.key === 'l') { toggleTheme(); return; }
