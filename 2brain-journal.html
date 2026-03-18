@@ -292,6 +292,29 @@
 
   .focus-entries { border-top: 1px solid var(--border); }
 
+  /* Tasks chrono list */
+  .focus-task-list { border-top: 1px solid var(--border); }
+  .focus-task-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 14px; cursor: pointer;
+    border-bottom: 1px solid var(--border); transition: background 0.1s;
+  }
+  .focus-task-row:last-child { border-bottom: none; }
+  .focus-task-row:hover { background: var(--surface-hover); }
+  .focus-task-row.active { background: rgba(245,158,11,0.07); border-left: 2px solid var(--type-task); padding-left: 12px; }
+  .focus-task-date { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); flex-shrink: 0; width: 44px; }
+  .focus-task-label { font-size: 12px; color: var(--type-task); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .focus-task-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+
+  /* Sort toggle chip in focus group header */
+  .focus-sort-chip {
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px; padding: 2px 6px;
+    border-radius: 3px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-dim); cursor: pointer; transition: all 0.15s; user-select: none; margin-left: auto;
+  }
+  .focus-sort-chip:hover { border-color: var(--type-task); color: var(--type-task); }
+  .focus-sort-chip.active { background: rgba(245,158,11,0.07); border-color: var(--type-task); color: var(--type-task); }
+
   .empty, .loading {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
@@ -560,6 +583,7 @@
   let viewMode = 'journal';
   let openSections = new Set();
   let focusSelected = { people: null, tasks: null, topics: null };
+  let tasksSortMode = 'freq';
 
   // Calendar state
   const _now = new Date();
@@ -664,7 +688,7 @@
 
   function setView(mode) {
     viewMode = mode;
-    if (mode === 'focus') focusSelected = { people: null, tasks: null, topics: null };
+    if (mode === 'focus') { focusSelected = { people: null, tasks: null, topics: null }; tasksSortMode = 'freq'; }
     document.getElementById('journal-chrono-btn').classList.toggle('active', mode === 'journal' || mode === 'chrono');
     document.querySelector('.chip[data-view="focus"]').classList.toggle('active', mode === 'focus');
     document.querySelector('.chip[data-view="calendar"]').classList.toggle('active', mode === 'calendar');
@@ -1004,9 +1028,47 @@
     renderFocus();
   }
 
+  function toggleTasksSort() {
+    tasksSortMode = tasksSortMode === 'freq' ? 'chrono' : 'freq';
+    focusSelected.tasks = null;
+    renderFocus();
+  }
+
   function renderFocusGroup(title, cssClass, items, group) {
     if (items.size === 0) return '';
     const selected = focusSelected[group];
+
+    // Tasks chrono mode: one row per line sorted by most recent entry
+    if (group === 'tasks' && tasksSortMode === 'chrono') {
+      const latestDate = entries => Math.max(...entries.map(t => new Date(t.created_at).getTime()));
+      const sorted = [...items.entries()].sort((a, b) => latestDate(b[1]) - latestDate(a[1]));
+      const rows = sorted.map(([key, thoughts]) => {
+        const isActive = selected === key;
+        const encoded = btoa(encodeURIComponent(key));
+        const dateStr = new Date(latestDate(thoughts)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const expanded = isActive
+          ? `<div class="focus-entries">${thoughts.map(t => renderEntry(t, detectApp(t))).join('')}</div>`
+          : '';
+        return `<div>
+          <div class="focus-task-row${isActive ? ' active' : ''}" onclick="selectFocusItem('tasks','${encoded}')">
+            <span class="focus-task-date">${dateStr}</span>
+            <span class="focus-task-label">→ ${esc(key)}</span>
+            <span class="focus-task-count">${thoughts.length}</span>
+          </div>
+          ${expanded}
+        </div>`;
+      }).join('');
+      return `<div class="focus-group">
+        <div class="focus-group-header">
+          <span class="focus-group-name">${title}</span>
+          <span class="focus-group-count">${items.size} unique</span>
+          <span class="focus-sort-chip active" onclick="toggleTasksSort()">chrono</span>
+        </div>
+        <div class="focus-task-list">${rows}</div>
+      </div>`;
+    }
+
+    // Default: pill cloud
     const pills = [...items.entries()].map(([key, thoughts]) => {
       const isActive = selected === key;
       const label = group === 'tasks' ? `→ ${key}` : key;
@@ -1016,10 +1078,14 @@
     const entriesHtml = selected && items.has(selected)
       ? `<div class="focus-entries">${items.get(selected).map(t => renderEntry(t, detectApp(t))).join('')}</div>`
       : '';
+    const sortChip = group === 'tasks'
+      ? `<span class="focus-sort-chip" onclick="toggleTasksSort()">chrono</span>`
+      : '';
     return `<div class="focus-group">
       <div class="focus-group-header">
         <span class="focus-group-name">${title}</span>
         <span class="focus-group-count">${items.size} unique</span>
+        ${sortChip}
       </div>
       <div class="focus-pills">${pills}</div>
       ${entriesHtml}
