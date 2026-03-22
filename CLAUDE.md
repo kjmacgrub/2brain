@@ -24,6 +24,7 @@
 - Entry types: `idea`, `meeting`, `observation`, `person_note`, `reference`, `summary`, `task`
 - Edge functions: `ingest-thought`, `brain-mcp`, `ical-proxy`
 - Publishable key in HTML files; service role key in credentials.md
+- `projects` table — controls which project tags the metadata extractor recognises. To add a project: `INSERT INTO projects (tag, name) VALUES ('tag', 'Name');`. To retire: `UPDATE projects SET active = false WHERE tag = 'old';`
 
 ## Journal View Logic
 - `journal` view: groups entries by detected app/project (Delivery, SBS, CEF, Budget, 2Brain, General)
