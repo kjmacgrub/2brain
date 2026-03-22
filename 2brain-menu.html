@@ -332,6 +332,34 @@
   </div>
 </div>
 
+<div class="section">
+  <div class="section-label">Settings</div>
+
+  <div class="cmd" onclick="window.open('https://supabase.com/dashboard/project/wiabftxfumvzbttqgmtq/editor?schema=public&table=projects', '_blank')">
+    <div class="cmd-body">
+      <div class="cmd-label">Manage Projects</div>
+      <div class="cmd-preview">Open projects table in Supabase — add, retire, or rename project tags</div>
+    </div>
+    <div class="cmd-copy">open</div>
+  </div>
+
+  <div class="cmd" onclick="copy(this, `INSERT INTO projects (tag, name) VALUES ('', '');`)">
+    <div class="cmd-body">
+      <div class="cmd-label">Add Project (SQL)</div>
+      <div class="cmd-preview">INSERT INTO projects (tag, name) VALUES ('', '');</div>
+    </div>
+    <div class="cmd-copy">copy</div>
+  </div>
+
+  <div class="cmd" onclick="copy(this, `UPDATE projects SET active = false WHERE tag = '';`)">
+    <div class="cmd-body">
+      <div class="cmd-label">Retire Project (SQL)</div>
+      <div class="cmd-preview">UPDATE projects SET active = false WHERE tag = '';</div>
+    </div>
+    <div class="cmd-copy">copy</div>
+  </div>
+</div>
+
 <footer>
   bookmark this page → open anytime → click to copy → paste into Claude<br>
   add new commands by editing the HTML source
