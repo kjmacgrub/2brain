@@ -141,7 +141,9 @@ function parseIcal(text: string): CalEvent[] {
 
   // First pass: parse all VEVENTs
   for (let i = 1; i < blocks.length; i++) {
-    const unfolded = blocks[i].replace(/\r?\n[ \t]/g, '');
+    // Stop at END:VEVENT to avoid leaking VTIMEZONE properties into events
+    const veventBody = blocks[i].split('END:VEVENT')[0];
+    const unfolded = veventBody.replace(/\r?\n[ \t]/g, '');
     const props: Record<string, string> = {};
     const exdates: string[] = [];
 
