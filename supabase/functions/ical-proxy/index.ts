@@ -18,56 +18,226 @@ interface CalEvent {
   endTime?: string;
 }
 
-function parseDateVal(val: string): { date: string; time?: string; allDay: boolean } {
-  const dateOnly = /^(\d{4})(\d{2})(\d{2})$/.exec(val);
+interface RawEvent {
+  uid: string;
+  summary: string;
+  dtstart: string;       // raw iCal value
+  dtend?: string;
+  rrule?: string;
+  exdates: string[];     // raw iCal values
+  recurrenceId?: string; // raw iCal value — marks this as an override
+  allDay: boolean;
+  startDate: string;     // YYYY-MM-DD
+  startTime?: string;    // HH:MM
+  endDate: string;
+  endTime?: string;
+}
+
+function parseDateVal(val: string): { date: string; time?: string; allDay: boolean; raw: string } {
+  const raw = val.replace(/Z$/, '');
+  const dateOnly = /^(\d{4})(\d{2})(\d{2})$/.exec(raw);
   if (dateOnly) {
-    return { date: `${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}`, allDay: true };
+    return { date: `${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}`, allDay: true, raw };
   }
-  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(val);
+  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(raw);
   if (dateTime) {
     return {
       date: `${dateTime[1]}-${dateTime[2]}-${dateTime[3]}`,
       time: `${dateTime[4]}:${dateTime[5]}`,
       allDay: false,
+      raw,
     };
   }
-  return { date: val, allDay: true };
+  return { date: val, allDay: true, raw };
+}
+
+function toDateKey(raw: string): string {
+  // Convert raw iCal date value to YYYY-MM-DD for comparison
+  return parseDateVal(raw).date;
+}
+
+function parseRrule(rrule: string): { freq: string; interval: number; until?: string; count?: number } {
+  const parts: Record<string, string> = {};
+  for (const p of rrule.split(';')) {
+    const [k, v] = p.split('=');
+    parts[k] = v;
+  }
+  return {
+    freq: parts['FREQ'] || 'DAILY',
+    interval: parseInt(parts['INTERVAL'] || '1', 10),
+    until: parts['UNTIL'],
+    count: parts['COUNT'] ? parseInt(parts['COUNT'], 10) : undefined,
+  };
+}
+
+function expandRecurrence(ev: RawEvent, windowStart: Date, windowEnd: Date): CalEvent[] {
+  if (!ev.rrule) return [];
+
+  const rule = parseRrule(ev.rrule);
+  const results: CalEvent[] = [];
+  const exdateSet = new Set(ev.exdates.map(toDateKey));
+
+  // Duration in days between start and end
+  const s0 = new Date(ev.startDate + 'T12:00:00');
+  const e0 = new Date(ev.endDate + 'T12:00:00');
+  const durationDays = Math.round((e0.getTime() - s0.getTime()) / 86400000);
+
+  let until: Date | null = null;
+  if (rule.until) {
+    const u = parseDateVal(rule.until);
+    until = new Date(u.date + 'T23:59:59');
+  }
+
+  const maxOccurrences = rule.count || 520; // ~10 years of weekly
+  const cursor = new Date(s0);
+  let count = 0;
+
+  while (count < maxOccurrences) {
+    if (until && cursor > until) break;
+    if (cursor > windowEnd) break;
+
+    const curDate = cursor.toISOString().substring(0, 10);
+
+    if (cursor >= windowStart && !exdateSet.has(curDate)) {
+      const endD = new Date(cursor);
+      endD.setDate(endD.getDate() + durationDays);
+      results.push({
+        date: curDate,
+        endDate: endD.toISOString().substring(0, 10),
+        title: ev.summary,
+        allDay: ev.allDay,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+      });
+    }
+
+    count++;
+
+    // Advance cursor
+    switch (rule.freq) {
+      case 'DAILY':
+        cursor.setDate(cursor.getDate() + rule.interval);
+        break;
+      case 'WEEKLY':
+        cursor.setDate(cursor.getDate() + 7 * rule.interval);
+        break;
+      case 'MONTHLY':
+        cursor.setMonth(cursor.getMonth() + rule.interval);
+        break;
+      case 'YEARLY':
+        cursor.setFullYear(cursor.getFullYear() + rule.interval);
+        break;
+      default:
+        cursor.setDate(cursor.getDate() + rule.interval);
+    }
+  }
+
+  return results;
 }
 
 function parseIcal(text: string): CalEvent[] {
-  const events: CalEvent[] = [];
   const blocks = text.split('BEGIN:VEVENT');
+  const rawEvents: RawEvent[] = [];
 
+  // First pass: parse all VEVENTs
   for (let i = 1; i < blocks.length; i++) {
-    // Unfold continued lines (RFC 5545: continuation starts with space or tab)
     const unfolded = blocks[i].replace(/\r?\n[ \t]/g, '');
     const props: Record<string, string> = {};
+    const exdates: string[] = [];
 
     for (const line of unfolded.split(/\r?\n/)) {
-      // Match PROPNAME or PROPNAME;PARAMS:value
       const m = line.match(/^([A-Z-]+)(?:;[^:]+)?:(.*)$/);
-      if (m) props[m[1]] = m[2].trim();
+      if (m) {
+        if (m[1] === 'EXDATE') {
+          // Can have multiple EXDATE lines, each with comma-separated values
+          exdates.push(...m[2].trim().split(','));
+        } else {
+          props[m[1]] = m[2].trim();
+        }
+      }
     }
 
     if (!props['DTSTART'] || !props['SUMMARY']) continue;
 
     const start = parseDateVal(props['DTSTART']);
-    const end   = props['DTEND'] ? parseDateVal(props['DTEND']) : start;
+    const end = props['DTEND'] ? parseDateVal(props['DTEND']) : start;
 
-    events.push({
-      date:      start.date,
-      endDate:   end.date,
-      title:     props['SUMMARY']
-                   .replace(/\\,/g, ',')
-                   .replace(/\\n/g, ' ')
-                   .replace(/\\/g, ''),
-      allDay:    start.allDay,
+    rawEvents.push({
+      uid: props['UID'] || '',
+      summary: props['SUMMARY']
+        .replace(/\\,/g, ',')
+        .replace(/\\n/g, ' ')
+        .replace(/\\/g, ''),
+      dtstart: props['DTSTART'],
+      dtend: props['DTEND'],
+      rrule: props['RRULE'],
+      exdates,
+      recurrenceId: props['RECURRENCE-ID'],
+      allDay: start.allDay,
+      startDate: start.date,
       startTime: start.time,
-      endTime:   end.time,
+      endDate: end.date,
+      endTime: end.time,
     });
   }
 
-  return events;
+  // Separate base events from overrides
+  const baseEvents = rawEvents.filter(e => !e.recurrenceId);
+  const overrides = rawEvents.filter(e => !!e.recurrenceId);
+
+  // Build override map: uid -> { overriddenDate -> override event }
+  const overrideMap = new Map<string, Map<string, RawEvent>>();
+  for (const ov of overrides) {
+    if (!overrideMap.has(ov.uid)) overrideMap.set(ov.uid, new Map());
+    const origDate = toDateKey(ov.recurrenceId!);
+    overrideMap.get(ov.uid)!.set(origDate, ov);
+  }
+
+  // Expansion window: 6 months back to 1 year forward
+  const now = new Date();
+  const windowStart = new Date(now);
+  windowStart.setMonth(windowStart.getMonth() - 6);
+  const windowEnd = new Date(now);
+  windowEnd.setFullYear(windowEnd.getFullYear() + 1);
+
+  const results: CalEvent[] = [];
+
+  for (const ev of baseEvents) {
+    if (ev.rrule) {
+      // Expand recurrence
+      const occurrences = expandRecurrence(ev, windowStart, windowEnd);
+      const uidOverrides = overrideMap.get(ev.uid);
+
+      for (const occ of occurrences) {
+        if (uidOverrides?.has(occ.date)) {
+          // This occurrence was moved — replace with override
+          const ov = uidOverrides.get(occ.date)!;
+          results.push({
+            date: ov.startDate,
+            endDate: ov.endDate,
+            title: ov.summary,
+            allDay: ov.allDay,
+            startTime: ov.startTime,
+            endTime: ov.endTime,
+          });
+        } else {
+          results.push(occ);
+        }
+      }
+    } else {
+      // Single event, no recurrence
+      results.push({
+        date: ev.startDate,
+        endDate: ev.endDate,
+        title: ev.summary,
+        allDay: ev.allDay,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+      });
+    }
+  }
+
+  return results;
 }
 
 Deno.serve(async (req) => {
