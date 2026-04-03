@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2Brain — Topic Manager</title>
+  <title>2B — Topic Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -385,7 +385,7 @@
     <!-- Apply -->
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-primary" id="apply-btn" onclick="applyToJournal()" style="width:100%" disabled>
-        Apply to 2brain-journal.html →
+        Apply to 2b-journal.html →
       </button>
       <div class="status" id="apply-status"></div>
     </div>
@@ -397,7 +397,7 @@
   const SUPABASE_URL = 'https://wiabftxfumvzbttqgmtq.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_y0N-mQ5ayjlQPAHqiVisGQ_dDwDB380';
 
-  const APP_ORDER = ['Delivery', 'SBS', 'CEF', 'Budget', '2Brain', 'General'];
+  const APP_ORDER = ['Delivery', 'SBS', 'CEF', 'Budget', '2B', 'General'];
 
   const APP_RULES = [
     {
@@ -421,7 +421,7 @@
       content: ['budget planner', 'cash flow', 'quicken', 'budget api', 'budget/api', 'sage green'],
     },
     {
-      app: '2Brain',
+      app: '2B',
       topics: ['knowledge management', 'second brain', 'open brain', 'memory system'],
       content: ['2brain', 'open brain', 'ingest-thought', 'brain-mcp', 'brain journal'],
     },
@@ -672,7 +672,7 @@
     await writable.close();
 
     status.style.color = 'var(--accent)';
-    status.textContent = 'Saved. Reload 2brain-journal.html to see changes.';
+    status.textContent = 'Saved. Reload 2b-journal.html to see changes.';
   }
 
   // ── Main apply action ──────────────────────────────────────────────────

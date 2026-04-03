@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2Brain Commands</title>
+<title>2B Commands</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
 
@@ -174,7 +174,7 @@
 <body>
 
 <header>
-  <h1>2Brain</h1>
+  <h1>2B</h1>
   <span class="subtitle">// command menu</span>
 </header>
 <div class="divider"></div>
@@ -184,7 +184,7 @@
 <div class="section">
   <div class="section-label">Capture</div>
 
-  <div class="cmd" onclick="window.open('2brain-meeting.html', '_blank')">
+  <div class="cmd" onclick="window.open('2b-meeting.html', '_blank')">
     <div class="cmd-body">
       <div class="cmd-label">Capture Meeting</div>
       <div class="cmd-preview">Fill in title, attendees, notes, action items → copy prompt</div>
@@ -195,15 +195,15 @@
 
 <div class="section">
   <div class="section-label">Session</div>
-  <div class="cmd" onclick="copy(this, 'Commit and push any uncommitted work that is in a stable state. Then write a brief journal entry (3–5 lines) capturing what we worked on this session: what we built or decided, any notable reasoning, and what\'s next. If we touched code, pull the git log from each project to ground the summary. Save it to 2Brain as type: summary. Skip saving a Claude memory unless something came up that genuinely needs to be remembered across sessions.')">
+  <div class="cmd" onclick="copy(this, 'Commit and push any uncommitted work that is in a stable state. Then write a brief journal entry (3–5 lines) capturing what we worked on this session: what we built or decided, any notable reasoning, and what\'s next. If we touched code, pull the git log from each project to ground the summary. Save it to 2B as type: summary. Skip saving a Claude memory unless something came up that genuinely needs to be remembered across sessions.')">
     <div class="cmd-body">
       <div class="cmd-label">Capture Summary</div>
-      <div class="cmd-preview">Write session summary → save to 2Brain (type: summary) + update Claude memory</div>
+      <div class="cmd-preview">Write session summary → save to 2B (type: summary) + update Claude memory</div>
     </div>
     <div class="cmd-copy">copy</div>
   </div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for my last 3 session summaries. List them numbered 1–3 with date and a one-line description, then wait for me to choose one before displaying it in full.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for my last 3 session summaries. List them numbered 1–3 with date and a one-line description, then wait for me to choose one before displaying it in full.')">
     <div class="cmd-body">
       <div class="cmd-label">Recover Summary</div>
       <div class="cmd-preview">List last 3 session summaries → pick 1/2/3 → display in full</div>
@@ -215,7 +215,7 @@
 <div class="section">
   <div class="section-label">Weekly Review</div>
 
-  <div class="cmd" onclick="copy(this, 'Pull my 2Brain thoughts from the last 7 days and give me a summary — what moved, what\'s still blocked, and what I haven\'t captured yet.')">
+  <div class="cmd" onclick="copy(this, 'Pull my 2B thoughts from the last 7 days and give me a summary — what moved, what\'s still blocked, and what I haven\'t captured yet.')">
     <div class="cmd-body">
       <div class="cmd-label">Friday Weekly Review</div>
       <div class="cmd-preview">Pull last 7 days → summarize what moved, blocked, uncaptured</div>
@@ -235,7 +235,7 @@
 <div class="section">
   <div class="section-label">Projects</div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for everything I know about the Delivery project — status, blockers, CSV dependencies.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for everything I know about the Delivery project — status, blockers, CSV dependencies.')">
     <div class="cmd-body">
       <div class="cmd-label">Delivery Project Status</div>
       <div class="cmd-preview">Status, blockers, CSV dependencies</div>
@@ -243,7 +243,7 @@
     <div class="cmd-copy">copy</div>
   </div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for everything I know about the Produce Processing project — status, adoption, data management.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for everything I know about the Produce Processing project — status, adoption, data management.')">
     <div class="cmd-body">
       <div class="cmd-label">Produce Processing Status</div>
       <div class="cmd-preview">Status, adoption, data management</div>
@@ -251,7 +251,7 @@
     <div class="cmd-copy">copy</div>
   </div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for everything I know about the SBS (Sendup by Sales) project — status, IT handshake, API blocker.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for everything I know about the SBS (Sendup by Sales) project — status, IT handshake, API blocker.')">
     <div class="cmd-body">
       <div class="cmd-label">SBS Project Status</div>
       <div class="cmd-preview">Status, IT handshake, API blocker</div>
@@ -259,7 +259,7 @@
     <div class="cmd-copy">copy</div>
   </div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for my open tasks related to Clover, CSV exports, or API access.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for my open tasks related to Clover, CSV exports, or API access.')">
     <div class="cmd-body">
       <div class="cmd-label">Clover / CSV / API Tasks</div>
       <div class="cmd-preview">Open tasks on data pipeline and IT dependencies</div>
@@ -271,7 +271,7 @@
 <div class="section">
   <div class="section-label">People</div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for everything I\'ve captured about Joe S — his priorities, pressures, and what I should keep in mind.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for everything I\'ve captured about Joe S — his priorities, pressures, and what I should keep in mind.')">
     <div class="cmd-body">
       <div class="cmd-label">Joe S — Context</div>
       <div class="cmd-preview">Priorities, pressures, political situation, scaling ambition</div>
@@ -283,7 +283,7 @@
 <div class="section">
   <div class="section-label">Design & Architecture</div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for my design principles — color cycling, three-week window, and any other UI standards I\'ve captured.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for my design principles — color cycling, three-week window, and any other UI standards I\'ve captured.')">
     <div class="cmd-body">
       <div class="cmd-label">Design Principles</div>
       <div class="cmd-preview">Color cycling, three-week window, UI standards</div>
@@ -295,7 +295,7 @@
 <div class="section">
   <div class="section-label">Personal Finance</div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for my personal finance project — goals, cash flow, budget, Hilary stress reduction, Caden and Tiger.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for my personal finance project — goals, cash flow, budget, Hilary stress reduction, Caden and Tiger.')">
     <div class="cmd-body">
       <div class="cmd-label">Finance Project — Goals & Status</div>
       <div class="cmd-preview">Cash flow, budget, family goals, surplus target</div>
@@ -303,7 +303,7 @@
     <div class="cmd-copy">copy</div>
   </div>
 
-  <div class="cmd" onclick="copy(this, 'Search 2Brain for my retirement planning thoughts — Roth conversion, Social Security timing, pension, segment rates.')">
+  <div class="cmd" onclick="copy(this, 'Search 2B for my retirement planning thoughts — Roth conversion, Social Security timing, pension, segment rates.')">
     <div class="cmd-body">
       <div class="cmd-label">Retirement Planning</div>
       <div class="cmd-preview">Roth, SS timing, pension, segment rates</div>
@@ -315,15 +315,15 @@
 <div class="section">
   <div class="section-label">Capture</div>
 
-  <div class="cmd" onclick="copy(this, 'I want to capture something in 2Brain: ')">
+  <div class="cmd" onclick="copy(this, 'I want to capture something in 2B: ')">
     <div class="cmd-body">
       <div class="cmd-label">Capture a Thought</div>
-      <div class="cmd-preview">I want to capture something in 2Brain: [your thought]</div>
+      <div class="cmd-preview">I want to capture something in 2B: [your thought]</div>
     </div>
     <div class="cmd-copy">copy</div>
   </div>
 
-  <div class="cmd" onclick="copy(this, 'Give me my 2Brain stats — total thoughts, breakdown by type, top topics.')">
+  <div class="cmd" onclick="copy(this, 'Give me my 2B stats — total thoughts, breakdown by type, top topics.')">
     <div class="cmd-body">
       <div class="cmd-label">Stats Overview</div>
       <div class="cmd-preview">Total thoughts, types, top topics</div>

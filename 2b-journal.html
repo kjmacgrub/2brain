@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2Brain Journal</title>
+<title>2B Journal</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
 
@@ -21,6 +21,7 @@
     --text-dim: #666;
     --text-mid: #999;
     --type-observation: #3b82f6;
+    --type-thought: #3b82f6;
     --type-task: #f59e0b;
     --type-idea: #a855f7;
     --type-reference: #6b7280;
@@ -207,6 +208,7 @@
     flex-shrink: 0;
   }
   .badge-observation { background: rgba(59,130,246,0.12); color: var(--type-observation); }
+  .badge-thought     { background: rgba(59,130,246,0.12); color: var(--type-thought); }
   .badge-task        { background: rgba(245,158,11,0.12); color: var(--type-task); }
   .badge-idea        { background: rgba(168,85,247,0.12); color: var(--type-idea); }
   .badge-reference   { background: rgba(107,114,128,0.12); color: var(--type-reference); }
@@ -254,6 +256,33 @@
   }
   .meta-pill.person { border-color: rgba(236,72,153,0.3); color: #ec4899; background: rgba(236,72,153,0.05); }
   .meta-pill.action { border-color: rgba(245,158,11,0.3); color: var(--type-task); background: rgba(245,158,11,0.05); }
+  .meta-pill.topic { cursor: default; position: relative; }
+  .meta-pill.topic .pill-x {
+    display: inline-block; margin-left: 4px; cursor: pointer; opacity: 0.4;
+    font-size: 10px; vertical-align: middle; line-height: 1;
+  }
+  .meta-pill.topic .pill-x:hover { opacity: 1; color: #e55; }
+  .meta-pill.add-topic {
+    cursor: pointer; border-style: dashed; opacity: 0.5; position: relative;
+  }
+  .meta-pill.add-topic:hover { opacity: 1; }
+  .topic-dropdown {
+    position: fixed; z-index: 100;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    max-height: 180px; overflow-y: auto; min-width: 140px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .topic-dropdown input {
+    width: 100%; box-sizing: border-box; border: none; border-bottom: 1px solid var(--border);
+    padding: 5px 8px; font-size: 11px; font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .topic-dropdown .td-item {
+    padding: 4px 8px; font-size: 11px; cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .topic-dropdown .td-item:hover { background: var(--hover); }
+  .topic-dropdown .td-new { opacity: 0.6; font-style: italic; }
 
   /* Focus view */
   .focus-view { display: flex; flex-direction: column; gap: 10px; }
@@ -695,7 +724,7 @@
 <body>
 
 <header>
-  <h1>2Brain</h1>
+  <h1>2B</h1>
   <span class="subtitle">// journal</span>
 </header>
 <div class="divider"></div>
@@ -707,7 +736,7 @@
   </div>
   <div class="filter-row">
     <span class="filter-label"><span class="hk">v</span>iew</span>
-    <span class="chip active" id="journal-chrono-btn" onclick="toggleJournalChrono()">project/chrono</span>
+    <span class="chip active" id="journal-chrono-btn" onclick="toggleJournalChrono()"><span id="jc-project" style="font-weight:700">project</span>/<span id="jc-chrono" style="opacity:0.5">chrono</span></span>
     <span class="chip" data-view="focus" onclick="setView('focus')"><span class="hk">f</span>ocus</span>
     <span class="chip" data-view="calendar" onclick="setView('calendar')"><span class="hk">c</span>alendar</span>
     <span id="collapse-all-btn" class="chip" onclick="toggleCollapseAll()" style="margin-left:8px">collapse all</span>
@@ -716,14 +745,12 @@
   <div class="filter-row" id="type-filters">
     <span class="filter-label">type</span>
     <span class="chip active" data-type="all" onclick="setType('all')"><span class="hk">a</span>ll</span>
-    <span class="chip" data-type="idea" onclick="setType('idea')"><span class="hk">i</span>dea</span>
+    <span class="chip" data-type="journal" onclick="setType('journal')"><span class="hk">J</span>ournal</span>
     <span class="chip" data-type="meeting" onclick="setType('meeting')"><span class="hk">M</span>eeting</span>
-    <span class="chip" data-type="observation" onclick="setType('observation')"><span class="hk">o</span>bservation</span>
-    <span class="chip" data-type="person_note" onclick="setType('person_note')"><span class="hk">p</span>erson</span>
     <span class="chip" data-type="reference" onclick="setType('reference')"><span class="hk">r</span>eference</span>
     <span class="chip" data-type="summary" onclick="setType('summary')"><span class="hk">s</span>ummary</span>
     <span class="chip" data-type="task" onclick="setType('task')"><span class="hk">t</span>ask</span>
-    <span class="chip" data-type="journal" onclick="setType('journal')"><span class="hk">J</span>ournal</span>
+    <span class="chip" data-type="thought" onclick="setType('thought')">th<span class="hk">o</span>ught</span>
   </div>
 </div>
 
@@ -826,7 +853,7 @@
 
   fetchProjects();
 
-  const APP_ORDER = ['Delivery', 'SBS', 'CEF', 'Budget', '2Brain', 'Vehicle', 'General'];
+  const APP_ORDER = ['Delivery', 'SBS', 'CEF', 'Budget', '2B', 'Vehicle', 'General'];
 
   const APP_RULES = [
   {
@@ -850,7 +877,7 @@
     content: ['budget planner', 'cash flow', 'quicken', 'budget api', 'budget/api', 'sage green'],
   },
   {
-    app: '2Brain',
+    app: '2B',
     topics: ['knowledge management', 'second brain', 'open brain', 'memory system'],
     content: ['2brain', 'open brain', 'ingest-thought', 'brain-mcp', 'brain journal'],
   },
@@ -979,9 +1006,16 @@
     viewMode = mode;
     if (mode === 'focus') { focusSelected = { people: null, tasks: null, topics: null }; tasksSortMode = 'freq'; }
     document.getElementById('journal-chrono-btn').classList.toggle('active', mode === 'journal' || mode === 'chrono');
+    document.getElementById('jc-project').style.fontWeight = mode === 'journal' ? '700' : '';
+    document.getElementById('jc-chrono').style.fontWeight = mode === 'chrono' ? '700' : '';
+    document.getElementById('jc-project').style.opacity = mode === 'journal' ? '1' : '0.5';
+    document.getElementById('jc-chrono').style.opacity = mode === 'chrono' ? '1' : '0.5';
     document.querySelector('.chip[data-view="focus"]').classList.toggle('active', mode === 'focus');
     document.querySelector('.chip[data-view="calendar"]').classList.toggle('active', mode === 'calendar');
-    if (mode === 'calendar') fetchCalEvents();
+    if (mode === 'calendar') {
+      if (!selectedDate) selectedDate = new Date().toISOString().substring(0, 10);
+      fetchCalEvents();
+    }
     updateCollapseAllBtn();
     updateFocusChip();
     renderFeed();
@@ -1079,12 +1113,13 @@
 
   function renderEntry(t, appLabel = null) {
     const meta = t.metadata || {};
-    const type = meta.type || 'observation';
+    const type = meta.type || 'thought';
     const dateStr = new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     const pills = [
       ...(meta.people || []).map(p => `<span class="meta-pill person">${esc(p)}</span>`),
-      ...(meta.topics || []).map(tp => `<span class="meta-pill topic">${esc(tp)}</span>`),
+      ...(meta.topics || []).map(tp => `<span class="meta-pill topic">${esc(tp)}<span class="pill-x" onclick="event.stopPropagation();removeTopic('${t.id}',decodeURIComponent(atob('${btoa(encodeURIComponent(tp))}')))">&times;</span></span>`),
+      `<span class="meta-pill add-topic" onclick="event.stopPropagation();showTopicDropdown(this,'${t.id}')">+ topic</span>`,
       ...(meta.action_items || []).map(a => `<span class="meta-pill action">→ ${esc(a)}</span>`),
     ].join('');
 
@@ -1102,13 +1137,13 @@
     return `<div class="entry-item" data-id="${t.id}">
       <div class="entry-row" onclick="toggleEntry('${t.id}')">
         <span class="entry-date">${dateStr}</span>
-        <span class="type-badge badge-${type}">${type === 'person_note' ? 'person' : type}</span>
+        <span class="type-badge badge-${type}">${type}</span>
         ${appBadge}
         <span class="entry-preview">${esc(previewText(t.content))}</span>
       </div>
       <div class="entry-detail">
         <div class="entry-content" id="content-${t.id}">${renderMarkdown(t.content)}</div>
-        ${pills ? `<div class="detail-meta">${pills}</div>` : ''}
+        <div class="detail-meta" id="meta-${t.id}">${pills}</div>
         ${actions}
       </div>
     </div>`;
@@ -1681,6 +1716,114 @@
     }
   }
 
+  // ── Topic editing ──────────────────────────────────────────────────────
+
+  function getAllTopics() {
+    const set = new Set();
+    for (const t of allThoughts) for (const tp of (t.metadata?.topics || [])) set.add(tp);
+    return [...set].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }
+
+  async function patchTopics(id, topics) {
+    const t = allThoughts.find(t => t.id === id);
+    if (!t) return;
+    const metadata = { ...t.metadata, topics };
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/thoughts?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({ metadata }),
+      });
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      const [updated] = await res.json();
+      const idx = allThoughts.findIndex(t => t.id === id);
+      if (idx !== -1) allThoughts[idx] = updated;
+      applyFilters();
+    } catch (err) {
+      alert('Topic update failed: ' + err.message);
+    }
+  }
+
+  function removeTopic(id, topic) {
+    const t = allThoughts.find(t => t.id === id);
+    if (!t) return;
+    const topics = (t.metadata?.topics || []).filter(tp => tp !== topic);
+    patchTopics(id, topics);
+  }
+
+  function addTopic(id, topic) {
+    const t = allThoughts.find(t => t.id === id);
+    if (!t) return;
+    const topics = [...(t.metadata?.topics || [])];
+    if (!topics.includes(topic)) topics.push(topic);
+    closeTopicDropdown();
+    patchTopics(id, topics);
+  }
+
+  let _topicDropdownCleanup = null;
+  function closeTopicDropdown() {
+    document.querySelectorAll('.topic-dropdown').forEach(el => el.remove());
+    if (_topicDropdownCleanup) { document.removeEventListener('click', _topicDropdownCleanup); _topicDropdownCleanup = null; }
+  }
+
+  function showTopicDropdown(btn, id) {
+    closeTopicDropdown();
+    const t = allThoughts.find(t => t.id === id);
+    const current = new Set(t?.metadata?.topics || []);
+    const all = getAllTopics().filter(tp => !current.has(tp));
+
+    const dd = document.createElement('div');
+    dd.className = 'topic-dropdown';
+    dd.innerHTML = `<input type="text" placeholder="filter or new…" />`;
+    dd.onclick = e => e.stopPropagation();
+
+    function renderItems(filter) {
+      dd.querySelectorAll('.td-item').forEach(el => el.remove());
+      const q = filter.toLowerCase().trim();
+      const matches = q ? all.filter(tp => tp.toLowerCase().includes(q)) : all;
+      for (const tp of matches) {
+        const item = document.createElement('div');
+        item.className = 'td-item';
+        item.textContent = tp;
+        item.onclick = () => addTopic(id, tp);
+        dd.appendChild(item);
+      }
+      if (q && !matches.includes(q) && !current.has(q)) {
+        const item = document.createElement('div');
+        item.className = 'td-item td-new';
+        item.textContent = `+ "${q}"`;
+        item.onclick = () => addTopic(id, q);
+        dd.appendChild(item);
+      }
+    }
+
+    const rect = btn.getBoundingClientRect();
+    dd.style.left = rect.left + 'px';
+    dd.style.top = (rect.bottom + 4) + 'px';
+    document.body.appendChild(dd);
+    const input = dd.querySelector('input');
+    input.focus();
+    renderItems('');
+    input.addEventListener('input', () => renderItems(input.value));
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeTopicDropdown();
+      if (e.key === 'Enter') {
+        const first = dd.querySelector('.td-item');
+        if (first) first.click();
+      }
+    });
+
+    setTimeout(() => {
+      _topicDropdownCleanup = () => closeTopicDropdown();
+      document.addEventListener('click', _topicDropdownCleanup);
+    }, 0);
+  }
+
   async function deleteEntry(id) {
     if (!confirm('Delete this journal entry?')) return;
 
@@ -1705,11 +1848,9 @@
 
   const KEY_MAP = {
     'a': 'all',
-    'i': 'idea',
     'j': 'journal',
     'm': 'meeting',
-    'o': 'observation',
-    'p': 'person_note',
+    'o': 'thought',
     'r': 'reference',
     's': 'summary',
     't': 'task',
@@ -1759,6 +1900,7 @@
     }
     // Don't handle shortcuts while typing in search or modals
     if (document.activeElement === document.getElementById('search')) return;
+    if (document.activeElement.closest('.topic-dropdown')) return;
     if (isModalOpen()) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (viewMode === 'calendar' && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) {
