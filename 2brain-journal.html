@@ -26,6 +26,7 @@
     --type-reference: #6b7280;
     --type-person_note: #ec4899;
     --type-summary: #06b6d4;
+    --type-journal: #e57a44;
     --today: #f97316;
   }
 
@@ -212,6 +213,7 @@
   .badge-person_note { background: rgba(236,72,153,0.12); color: var(--type-person_note); }
   .badge-meeting     { background: rgba(16,185,129,0.12); color: #10b981; }
   .badge-summary     { background: rgba(6,182,212,0.12);  color: var(--type-summary); }
+  .badge-journal     { background: rgba(229,122,68,0.12); color: var(--type-journal); }
   .badge-event       { background: rgba(249,115,22,0.12); color: var(--today); }
   .hk { color: var(--today); }
 
@@ -502,6 +504,140 @@
     padding: 24px;
     text-align: center;
   }
+
+  /* Journal entry modal */
+  .journal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .journal-overlay.open { display: flex; }
+
+  .journal-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 520px;
+    max-width: 92vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .journal-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .journal-modal-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--type-journal);
+    letter-spacing: 0.5px;
+  }
+
+  .journal-modal-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .journal-field-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .journal-field-row label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 40px;
+    flex-shrink: 0;
+  }
+
+  .journal-field-row input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .journal-field-row input:focus { border-color: var(--type-journal); }
+
+  .journal-textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 180px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .journal-textarea:focus { border-color: var(--type-journal); }
+  .journal-textarea::placeholder { color: var(--text-dim); }
+
+  .journal-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .journal-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 6px 16px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .journal-btn-cancel {
+    background: var(--surface);
+    color: var(--text-dim);
+  }
+  .journal-btn-cancel:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .journal-btn-save {
+    background: rgba(229,122,68,0.12);
+    color: var(--type-journal);
+    border-color: var(--type-journal);
+  }
+  .journal-btn-save:hover { background: rgba(229,122,68,0.22); }
+  .journal-btn-save:disabled { opacity: 0.4; cursor: default; }
+
+  .journal-error {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #ef4444;
+    padding: 0 18px 8px;
+    display: none;
+  }
 </style>
 </head>
 <body>
@@ -535,11 +671,36 @@
     <span class="chip" data-type="reference" onclick="setType('reference')"><span class="hk">r</span>eference</span>
     <span class="chip" data-type="summary" onclick="setType('summary')"><span class="hk">s</span>ummary</span>
     <span class="chip" data-type="task" onclick="setType('task')"><span class="hk">t</span>ask</span>
+    <span class="chip" data-type="journal" onclick="setType('journal')">journal</span>
+    <span class="chip" onclick="openJournal()" style="margin-left:auto;border-color:var(--type-journal);color:var(--type-journal)"><span class="hk">j</span> + new</span>
   </div>
 </div>
 
 <div class="stats-bar" id="stats">loading...</div>
 <div id="feed"><div class="loading">fetching thoughts...</div></div>
+
+<!-- Journal entry modal -->
+<div class="journal-overlay" id="journal-overlay" onclick="if(event.target===this)closeJournal()">
+  <div class="journal-modal">
+    <div class="journal-modal-header">
+      <span class="journal-modal-title">journal entry</span>
+    </div>
+    <div class="journal-modal-body">
+      <div class="journal-field-row">
+        <label>date</label>
+        <input type="date" id="journal-date">
+        <label style="width:auto;margin-left:6px">time</label>
+        <input type="time" id="journal-time">
+      </div>
+      <textarea class="journal-textarea" id="journal-content" placeholder="what's on your mind..."></textarea>
+    </div>
+    <div class="journal-error" id="journal-error"></div>
+    <div class="journal-modal-footer">
+      <button class="journal-btn journal-btn-cancel" onclick="closeJournal()">cancel</button>
+      <button class="journal-btn journal-btn-save" id="journal-save" onclick="saveJournal()">save</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const SUPABASE_URL = 'https://wiabftxfumvzbttqgmtq.supabase.co';
@@ -1198,6 +1359,69 @@
     feed.innerHTML = `<div class="sections">${renderCalSection(filteredCalEvents())}${parts.join('')}</div>`;
   }
 
+  // ── Journal entry modal ──────────────────────────────────────────────────
+
+  function openJournal() {
+    const now = new Date();
+    document.getElementById('journal-date').value = now.toISOString().substring(0, 10);
+    document.getElementById('journal-time').value = now.toTimeString().substring(0, 5);
+    document.getElementById('journal-content').value = '';
+    document.getElementById('journal-error').style.display = 'none';
+    document.getElementById('journal-save').disabled = false;
+    document.getElementById('journal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('journal-content').focus(), 50);
+  }
+
+  function closeJournal() {
+    document.getElementById('journal-overlay').classList.remove('open');
+  }
+
+  async function saveJournal() {
+    const content = document.getElementById('journal-content').value.trim();
+    if (!content) return;
+
+    const dateVal = document.getElementById('journal-date').value;
+    const timeVal = document.getElementById('journal-time').value;
+    const created_at = `${dateVal}T${timeVal}:00`;
+
+    const saveBtn = document.getElementById('journal-save');
+    const errorEl = document.getElementById('journal-error');
+    saveBtn.disabled = true;
+    errorEl.style.display = 'none';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/thoughts`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
+          content,
+          metadata: { type: 'journal', topics: [], people: [], action_items: [] },
+          created_at,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`${res.status}: ${err}`);
+      }
+
+      const [newEntry] = await res.json();
+      allThoughts.unshift(newEntry);
+      buildDateIndex(allThoughts);
+      applyFilters();
+      closeJournal();
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+      saveBtn.disabled = false;
+    }
+  }
+
   const KEY_MAP = {
     'a': 'all',
     'i': 'idea',
@@ -1236,7 +1460,19 @@
   }
 
   document.addEventListener('keydown', e => {
+    // Close journal modal on Escape
+    if (e.key === 'Escape' && document.getElementById('journal-overlay').classList.contains('open')) {
+      closeJournal();
+      return;
+    }
+    // Cmd/Ctrl+Enter to save journal when modal is open
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && document.getElementById('journal-overlay').classList.contains('open')) {
+      saveJournal();
+      return;
+    }
+    // Don't handle shortcuts while typing in search or journal modal
     if (document.activeElement === document.getElementById('search')) return;
+    if (document.getElementById('journal-overlay').classList.contains('open')) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (viewMode === 'calendar' && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) {
       e.preventDefault();
@@ -1251,6 +1487,7 @@
     if (e.key === 'c') { setView('calendar'); return; }
     if (e.key === 'x') { toggleCollapseAll(); return; }
     if (e.key === 'l') { toggleTheme(); return; }
+    if (e.key === 'j') { openJournal(); return; }
     const type = KEY_MAP[e.key];
     if (type) setType(type);
   });
