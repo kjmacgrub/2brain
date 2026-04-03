@@ -671,7 +671,7 @@
     <span class="chip" data-type="reference" onclick="setType('reference')"><span class="hk">r</span>eference</span>
     <span class="chip" data-type="summary" onclick="setType('summary')"><span class="hk">s</span>ummary</span>
     <span class="chip" data-type="task" onclick="setType('task')"><span class="hk">t</span>ask</span>
-    <span class="chip" data-type="journal" onclick="setType('journal')">journal</span>
+    <span class="chip" data-type="journal" onclick="setType('journal')"><span class="hk">J</span>ournal</span>
     <span class="chip" onclick="openJournal()" style="margin-left:auto;border-color:var(--type-journal);color:var(--type-journal)"><span class="hk">j</span> + new</span>
   </div>
 </div>
@@ -1487,6 +1487,7 @@
     if (e.key === 'c') { setView('calendar'); return; }
     if (e.key === 'x') { toggleCollapseAll(); return; }
     if (e.key === 'l') { toggleTheme(); return; }
+    if (e.key === 'J') { setType('journal'); return; }
     if (e.key === 'j') { openJournal(); return; }
     const type = KEY_MAP[e.key];
     if (type) setType(type);
