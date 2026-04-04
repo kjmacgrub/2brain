@@ -853,45 +853,17 @@
 
   fetchProjects();
 
-  const APP_ORDER = ['Delivery', 'SBS', 'CEF', 'Budget', '2B', 'Vehicle', 'General'];
-
-  const APP_RULES = [
-  {
-    app: 'Delivery',
-    topics: ['delivery', 'cloud run', 'firebase', 'firestore'],
-    content: ['delivery app', 'cloud run', 'nuclear wipe', 'import screen', 'high count', 'high-count', 'scan_downloads'],
-  },
-  {
-    app: 'SBS',
-    topics: ['sbs', 'inventory management', 'retail operations', 'backstock', 'back-stock'],
-    content: ['sbs', 'back-stock', 'backstock', 'pull log', 'shelf capacity', 'store back', '/sbs/'],
-  },
-  {
-    app: 'CEF',
-    topics: ['cef', 'investment', 'portfolio', 'nav', 'closed-end', 'distribution'],
-    content: ['cef', 'closed-end', 'cef portfolio', 'nav sparkline', 'nav history', 'cef.db', '/cef/'],
-  },
-  {
-    app: 'Budget',
-    topics: ['budget', 'cash flow', 'quicken', 'sage', 'tax'],
-    content: ['budget planner', 'cash flow', 'quicken', 'budget api', 'budget/api', 'sage green'],
-  },
-  {
-    app: '2B',
-    topics: ['knowledge management', 'second brain', 'open brain', 'memory system'],
-    content: ['2brain', 'open brain', 'ingest-thought', 'brain-mcp', 'brain journal'],
-  },
-  {
-    app: 'Produce',
-    topics: ['produce-processor', 'produce processor', 'produce processing'],
-    content: ['produce processor', 'produce-processor'],
-  },
-  {
-    app: 'Vehicle',
-    topics: ['vehicle lease', 'decision timeline', 'financial details', 'vehicle research', 'leasing', 'retirement planning', 'vehicle lease comparison', 'automotive analysis', 'Hyundai Lease Strategy', 'Lease Assumption', 'Retirement Planning', 'test drive', 'Bay Ridge', 'Hyundai Palisade', 'Brooklyn', 'hybrid SUVs', 'car comparison'],
-    content: [],
-  },
-  ];
+  // Group name is derived from the first topic on each entry:
+  //   "trip: 2026 Delaware"  → "Trip"
+  //   "delivery"             → "Delivery"
+  //   no topics              → "General"
+  function detectGroup(t) {
+    const topics = (t.metadata || {}).topics || [];
+    if (!topics.length) return 'General';
+    const first = topics[0];
+    const prefix = first.includes(':') ? first.split(':')[0].trim() : first;
+    return prefix.replace(/\b\w/g, c => c.toUpperCase());
+  }
 
   let allThoughts = [];
   let filtered = [];
@@ -940,24 +912,11 @@
   }
 
   function detectApp(t) {
-    const meta = t.metadata || {};
-    const topics = (meta.topics || []).join(' ').toLowerCase();
-    const content = t.content.toLowerCase().substring(0, 400);
-    for (const rule of APP_RULES) {
-      if (rule.topics.some(k => topics.includes(k))) return rule.app;
-      if (rule.content.some(k => content.includes(k))) return rule.app;
-    }
-    // Fall back to first topic tag, title-cased
-    const firstTopic = (meta.topics || [])[0];
-    if (firstTopic && firstTopic !== 'uncategorized') {
-      return firstTopic.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-    return 'General';
+    return detectGroup(t);
   }
 
   function groupByApp(thoughts) {
     const groups = {};
-    APP_ORDER.forEach(a => groups[a] = []);
     for (const t of thoughts) {
       const app = detectApp(t);
       if (!groups[app]) groups[app] = [];
@@ -967,11 +926,13 @@
   }
 
   function getAppOrder(groups) {
-    const known = APP_ORDER.filter(a => groups[a] && groups[a].length);
-    const extra = Object.keys(groups)
-      .filter(a => !APP_ORDER.includes(a) && groups[a].length)
-      .sort();
-    return [...known, ...extra];
+    return Object.keys(groups)
+      .filter(a => groups[a].length)
+      .sort((a, b) => {
+        if (a === 'General') return 1;
+        if (b === 'General') return -1;
+        return a.localeCompare(b, undefined, { sensitivity: 'base' });
+      });
   }
 
   function updateCollapseAllBtn() {
@@ -1497,14 +1458,10 @@
       const thoughts = groups[app];
       if (!thoughts.length) continue;
       const isOpen = openSections.has(app);
-      const isStray = !APP_ORDER.includes(app);
-      let topicTagsHtml = '';
-      if (isStray) {
-        const rawTopics = [...new Set(thoughts.flatMap(t => (t.metadata?.topics || [])))];
-        topicTagsHtml = rawTopics.length
-          ? `<span class="section-topic-tags">${rawTopics.map(tp => `<span class="section-topic-tag">${esc(tp)}</span>`).join('')}</span>`
-          : '';
-      }
+      const rawTopics = [...new Set(thoughts.flatMap(t => (t.metadata?.topics || [])))];
+      const topicTagsHtml = rawTopics.length
+        ? `<span class="section-topic-tags">${rawTopics.map(tp => `<span class="section-topic-tag">${esc(tp)}</span>`).join('')}</span>`
+        : '';
       parts.push(`
         <div class="section" data-section="${app}">
           <div class="section-header" onclick="toggleSection('${app}')">
