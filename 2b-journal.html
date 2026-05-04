@@ -1318,10 +1318,20 @@
     </div>`;
   }
 
+  function to12Hour(t) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(t || '');
+    if (!m) return t;
+    let h = parseInt(m[1], 10);
+    const min = m[2];
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return min === '00' ? `${h}${ampm}` : `${h}:${min}${ampm}`;
+  }
+
   function renderCalEventTile(ev) {
     const d = new Date(ev.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const timeStr = ev.allDay ? '' : (ev.startTime ? ` · ${ev.startTime}` : '');
+    const timeStr = ev.allDay ? '' : (ev.startTime ? ` · ${to12Hour(ev.startTime)}` : '');
     return `<div class="entry-item">
       <div class="entry-row" style="cursor:default">
         <span class="entry-date">${dateStr}</span>
