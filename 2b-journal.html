@@ -328,6 +328,8 @@
   }
 
   .entry-content { margin-bottom: 10px; }
+  .entry-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .entry-photos img { max-width: 160px; max-height: 160px; border-radius: 8px; border: 1px solid var(--border); display: block; }
 
   .md-h2 { display: block; color: var(--accent); font-weight: 500; font-size: 12px; padding: 6px 0 2px; }
   .md-h3 { display: block; color: var(--text); font-weight: 500; font-size: 12px; padding: 4px 0 1px; }
@@ -816,6 +818,7 @@
 <header>
   <h1>2B</h1>
   <span class="subtitle">// journal</span>
+  <a href="capture.html" class="subtitle" style="margin-left:auto;text-decoration:none">+ capture</a>
 </header>
 <div class="divider"></div>
 
@@ -1296,6 +1299,11 @@
       ? `<span class="type-badge" style="background:rgba(0,200,150,0.07);color:var(--accent);opacity:0.7">${esc(appLabel)}</span>`
       : '';
 
+    const photos = (meta.images || []).length
+      ? `<div class="entry-photos">${(meta.images || []).map(u =>
+          `<a href="${esc(u)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><img src="${esc(u)}" loading="lazy"></a>`).join('')}</div>`
+      : '';
+
     const actions = type === 'journal'
       ? `<div class="entry-actions">
           <button class="entry-action-btn" onclick="event.stopPropagation();editEntry('${t.id}')">edit</button>
@@ -1312,6 +1320,7 @@
       </div>
       <div class="entry-detail">
         <div class="entry-content" id="content-${t.id}">${renderMarkdown(t.content)}</div>
+        ${photos}
         <div class="detail-meta" id="meta-${t.id}">${pills}</div>
         ${actions}
       </div>
