@@ -228,11 +228,9 @@
   // pending photos selected but not yet saved: { id, file, dataUrl }
   let photos = [];
 
-  // ── Timestamp (local, naive — matches journal convention) ──────────────────
-  function localStamp(d = new Date()) {
-    const p = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-  }
+  // created_at: always a true UTC instant (…Z). created_at is a timestamptz
+  // column, so a bare local string would be read as UTC and land hours off.
+  function nowStamp() { return new Date().toISOString(); }
 
   function setStatus(msg, cls) {
     statusEl.textContent = msg;
@@ -321,7 +319,7 @@
     if (!content && photos.length === 0) return;
     const topic = topicEl.value.trim();
     const topics = topic ? [topic] : [];
-    const created_at = localStamp();
+    const created_at = nowStamp();
 
     $('save').disabled = true;
     setStatus('saving…');
