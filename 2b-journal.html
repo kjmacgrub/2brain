@@ -1730,7 +1730,9 @@
 
     const dateVal = document.getElementById('journal-date').value;
     const timeVal = document.getElementById('journal-time').value;
-    const created_at = `${dateVal}T${timeVal}:00`;
+    // Parse the picked date+time as local, store as a true UTC instant —
+    // created_at is timestamptz, so a bare local string would be read as UTC.
+    const created_at = new Date(`${dateVal}T${timeVal}:00`).toISOString();
     const project = document.getElementById('journal-project').value;
     const topics = project ? [project] : [];
 
@@ -1798,7 +1800,9 @@
 
     const dateVal = document.getElementById('meeting-date').value;
     const timeVal = document.getElementById('meeting-time').value;
-    const created_at = `${dateVal}T${timeVal}:00`;
+    // Parse the picked date+time as local, store as a true UTC instant —
+    // created_at is timestamptz, so a bare local string would be read as UTC.
+    const created_at = new Date(`${dateVal}T${timeVal}:00`).toISOString();
     const project = document.getElementById('meeting-project').value;
     const topics = [topic, project].filter(Boolean);
 
