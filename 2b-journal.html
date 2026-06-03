@@ -1708,9 +1708,16 @@
 
   // ── Journal entry modal ──────────────────────────────────────────────────
 
+  // Local YYYY-MM-DD (not UTC) so the date prefill agrees with the local-time
+  // prefill — otherwise they disagree by a day near midnight.
+  function localDateStr(d) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
   function openJournal() {
     const now = new Date();
-    document.getElementById('journal-date').value = now.toISOString().substring(0, 10);
+    document.getElementById('journal-date').value = localDateStr(now);
     document.getElementById('journal-time').value = now.toTimeString().substring(0, 5);
     document.getElementById('journal-content').value = '';
     document.getElementById('journal-project').value = '';
@@ -1778,7 +1785,7 @@
 
   function openMeeting() {
     const now = new Date();
-    document.getElementById('meeting-date').value = now.toISOString().substring(0, 10);
+    document.getElementById('meeting-date').value = localDateStr(now);
     document.getElementById('meeting-time').value = now.toTimeString().substring(0, 5);
     document.getElementById('meeting-topic').value = '';
     document.getElementById('meeting-notes').value = '';
